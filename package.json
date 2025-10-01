@@ -1,0 +1,50 @@
+{
+  "name": "ecom-search-engine",
+  "version": "1.0.0",
+  "description": "E-commerce search engine",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "dev:debug": "LOG_LEVEL=debug node --watch src/index.js",
+    "dev:info": "LOG_LEVEL=info node --watch src/index.js",
+    "dev:warn": "LOG_LEVEL=warn node --watch src/index.js",
+    "dev:error": "LOG_LEVEL=error node --watch src/index.js",
+    "start:prod": "NODE_ENV=production LOG_LEVEL=warn node src/index.js",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
+    "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com-personal:anurag0510/ecom-search-engine.git"
+  },
+  "keywords": [
+    "ecommerce",
+    "search",
+    "engine"
+  ],
+  "author": "",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "eslint": "^9.36.0",
+    "jest": "^30.2.0",
+    "nodemon": "^3.1.10",
+    "prettier": "^3.6.2",
+    "supertest": "^7.1.4"
+  },
+  "dependencies": {
+    "@elastic/elasticsearch": "^9.1.1",
+    "express": "^5.1.0",
+    "joi": "^18.0.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "winston": "^3.18.3",
+    "winston-daily-rotate-file": "^5.0.0"
+  }
+}

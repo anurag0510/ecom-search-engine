@@ -1,0 +1,97 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug - All Logs (Debug Level)",
+      "program": "${workspaceFolder}/src/index.js",
+      "env": {
+        "NODE_ENV": "development",
+        "LOG_LEVEL": "debug",
+        "PORT": "3000"
+      },
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug - Info Level",
+      "program": "${workspaceFolder}/src/index.js",
+      "env": {
+        "NODE_ENV": "development",
+        "LOG_LEVEL": "info",
+        "PORT": "3000"
+      },
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug - HTTP Requests Only",
+      "program": "${workspaceFolder}/src/index.js",
+      "env": {
+        "NODE_ENV": "development",
+        "LOG_LEVEL": "http",
+        "PORT": "3000"
+      },
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug - Warnings & Errors Only",
+      "program": "${workspaceFolder}/src/index.js",
+      "env": {
+        "NODE_ENV": "development",
+        "LOG_LEVEL": "warn",
+        "PORT": "3000"
+      },
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug - Errors Only",
+      "program": "${workspaceFolder}/src/index.js",
+      "env": {
+        "NODE_ENV": "development",
+        "LOG_LEVEL": "error",
+        "PORT": "3000"
+      },
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Production Mode",
+      "program": "${workspaceFolder}/src/index.js",
+      "env": {
+        "NODE_ENV": "production",
+        "LOG_LEVEL": "warn",
+        "PORT": "3000"
+      },
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug - No File Logs",
+      "program": "${workspaceFolder}/src/index.js",
+      "env": {
+        "NODE_ENV": "development",
+        "LOG_LEVEL": "debug",
+        "LOG_FILE": "false",
+        "PORT": "3000"
+      },
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    }
+  ]
+}
