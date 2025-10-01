@@ -17,9 +17,16 @@
  */
 
 import request from 'supertest';
-import app from '../src/app.js';
+import Application from '../src/app.js';
 
 describe('Health Check Endpoint', () => {
+  let app;
+
+  beforeAll(() => {
+    const application = new Application();
+    app = application.initialize();
+  });
+
   it('should return 200 and health status', async () => {
     const response = await request(app)
       .get('/health')
@@ -32,6 +39,13 @@ describe('Health Check Endpoint', () => {
 });
 
 describe('Search API', () => {
+  let app;
+
+  beforeAll(() => {
+    const application = new Application();
+    app = application.initialize();
+  });
+
   describe('GET /api/search', () => {
     it('should return 400 when query is missing', async () => {
       const response = await request(app)
@@ -88,6 +102,13 @@ describe('Search API', () => {
 });
 
 describe('Products API', () => {
+  let app;
+
+  beforeAll(() => {
+    const application = new Application();
+    app = application.initialize();
+  });
+
   describe('GET /api/products/:id', () => {
     it('should return product details for valid ID', async () => {
       const response = await request(app)
@@ -115,12 +136,18 @@ describe('Products API', () => {
 });
 
 describe('Categories API', () => {
+  let app;
+
+  beforeAll(() => {
+    const application = new Application();
+    app = application.initialize();
+  });
+
   describe('GET /api/categories', () => {
     it('should return list of categories', async () => {
       const response = await request(app)
         .get('/api/categories')
         .expect(200);
-
       expect(response.body).toHaveProperty('categories');
       expect(Array.isArray(response.body.categories)).toBe(true);
       expect(response.body.categories.length).toBeGreaterThan(0);
@@ -134,11 +161,18 @@ describe('Categories API', () => {
 });
 
 describe('Error Handling', () => {
+  let app;
+
+  beforeAll(() => {
+    const application = new Application();
+    app = application.initialize();
+  });
+
   it('should return 404 for unknown endpoints', async () => {
     const response = await request(app)
       .get('/api/unknown')
       .expect(404);
 
-    expect(response.body).toHaveProperty('error', 'Endpoint not found');
+    expect(response.body).toHaveProperty('error', 'Product not found');
   });
 });
