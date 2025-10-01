@@ -22,317 +22,150 @@ import swaggerJsdoc from 'swagger-jsdoc';
 import { swaggerOptions } from './swagger.js';
 import { requestLogger, errorLogger, logger } from './middleware/logging.js';
 
-const app = express();
+// Import services
+import ProductService from './services/product-service.js';
+import CategoryService from './services/category-service.js';
 
-// Request logging middleware (before other middleware)
-app.use(requestLogger);
+// Import controllers
+import ProductController from './controllers/product-controller.js';
+import CategoryController from './controllers/category-controller.js';
+import HealthController from './controllers/health-controller.js';
 
-// Initialize Swagger
-const swaggerSpec = swaggerJsdoc(swaggerOptions);
+// Import routers
+import ProductRouter from './routes/product-routes.js';
+import CategoryRouter from './routes/category-routes.js';
+import HealthRouter from './routes/health-routes.js';
 
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+class Application {
+  constructor() {
+    this.app = express();
+    this.logger = logger;
+  }
 
-// Swagger UI
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  customCss: '.swagger-ui .topbar { display: none }',
-  customSiteTitle: 'E-commerce Search API Docs'
-}));
+  /**
+   * Initialize all dependencies
+   */
+  _initDependencies() {
+    this.logger.debug('Initializing dependencies');
 
-/**
- * @swagger
- * /health:
- *   get:
- *     summary: Health check endpoint
- *     description: Returns the health status of the API service
- *     tags: [Health]
- *     responses:
- *       200:
- *         description: Service is healthy
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/HealthResponse'
- */
-app.get('/health', (req, res) => {
-  logger.debug('Health check requested');
-  res.status(200).json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    service: 'ecom-search-engine'
-  });
-});
+    // Initialize services
+    this.productService = new ProductService(this.logger);
+    this.categoryService = new CategoryService(this.logger);
 
-/**
- * @swagger
- * /api/search:
- *   get:
- *     summary: Search for products
- *     description: Search products with optional filters for category and price range
- *     tags: [Search]
- *     parameters:
- *       - in: query
- *         name: query
- *         required: true
- *         schema:
- *           type: string
- *         description: Search term to find products
- *         example: headphones
- *       - in: query
- *         name: category
- *         schema:
- *           type: string
- *         description: Filter by product category
- *         example: Electronics
- *       - in: query
- *         name: minPrice
- *         schema:
- *           type: number
- *         description: Minimum price filter
- *         example: 50
- *       - in: query
- *         name: maxPrice
- *         schema:
- *           type: number
- *         description: Maximum price filter
- *         example: 200
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           default: 1
- *         description: Page number for pagination
- *         example: 1
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 10
- *         description: Number of results per page
- *         example: 10
- *     responses:
- *       200:
- *         description: Search results returned successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/SearchResponse'
- *       400:
- *         description: Bad request - query parameter is required
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-app.get('/api/search', (req, res) => {
-  const { query, category, minPrice, maxPrice, page = 1, limit = 10 } = req.query;
+    // Initialize controllers
+    this.productController = new ProductController(this.productService, this.logger);
+    this.categoryController = new CategoryController(this.categoryService, this.logger);
+    this.healthController = new HealthController(this.logger);
 
-  if (!query) {
-    logger.warn('Search attempted without query parameter', { ip: req.ip });
-    return res.status(400).json({
-      error: 'Search query is required'
+    // Initialize routers
+    this.productRouter = new ProductRouter(this.productController);
+    this.categoryRouter = new CategoryRouter(this.categoryController);
+    this.healthRouter = new HealthRouter(this.healthController);
+
+    this.logger.info('Dependencies initialized successfully');
+  }
+
+  /**
+   * Configure middleware
+   */
+  _configureMiddleware() {
+    this.logger.debug('Configuring middleware');
+
+    // Request logging middleware (before other middleware)
+    this.app.use(requestLogger);
+
+    // Body parsing middleware
+    this.app.use(express.json());
+    this.app.use(express.urlencoded({ extended: true }));
+
+    // Swagger UI
+    const swaggerSpec = swaggerJsdoc(swaggerOptions);
+    this.app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+      customCss: '.swagger-ui .topbar { display: none }',
+      customSiteTitle: 'E-commerce Search API Docs'
+    }));
+
+    this.logger.info('Middleware configured successfully');
+  }
+
+  /**
+   * Configure routes
+   */
+  _configureRoutes() {
+    this.logger.debug('Configuring routes');
+
+    // Health check route
+    this.app.use('/health', this.healthRouter.getRouter());
+
+    // API routes
+    this.app.use('/api/categories', this.categoryRouter.getRouter());
+    this.app.use('/api/products', this.productRouter.getRouter());
+    this.app.use('/api', this.productRouter.getRouter());
+
+    this.logger.info('Routes configured successfully');
+  }
+
+  /**
+   * Configure error handlers
+   */
+  _configureErrorHandlers() {
+    this.logger.debug('Configuring error handlers');
+
+    // 404 handler
+    this.app.use((req, res) => {
+      this.logger.warn('404 - Endpoint not found', { 
+        method: req.method, 
+        url: req.originalUrl, 
+        ip: req.ip 
+      });
+      res.status(404).json({
+        error: 'Endpoint not found'
+      });
     });
-  }
 
-  logger.info('Product search initiated', { query, category, minPrice, maxPrice, page, limit });
+    // Error logging middleware
+    this.app.use(errorLogger);
 
-  // Dummy search results
-  const dummyProducts = [
-    {
-      id: 1,
-      name: 'Wireless Bluetooth Headphones',
-      category: 'Electronics',
-      price: 79.99,
-      description: 'High-quality wireless headphones with noise cancellation',
-      inStock: true
-    },
-    {
-      id: 2,
-      name: 'Smart Watch',
-      category: 'Electronics',
-      price: 199.99,
-      description: 'Feature-rich smartwatch with health tracking',
-      inStock: true
-    },
-    {
-      id: 3,
-      name: 'Running Shoes',
-      category: 'Sports',
-      price: 89.99,
-      description: 'Comfortable running shoes for all terrains',
-      inStock: false
-    }
-  ];
-
-  // Filter results based on query and filters
-  let results = dummyProducts.filter(product =>
-    product.name.toLowerCase().includes(query.toLowerCase()) ||
-    product.description.toLowerCase().includes(query.toLowerCase())
-  );
-
-  if (category) {
-    results = results.filter(product =>
-      product.category.toLowerCase() === category.toLowerCase()
-    );
-  }
-
-  if (minPrice) {
-    results = results.filter(product => product.price >= parseFloat(minPrice));
-  }
-
-  if (maxPrice) {
-    results = results.filter(product => product.price <= parseFloat(maxPrice));
-  }
-
-  logger.debug('Search completed', { query, resultCount: results.length });
-
-  res.status(200).json({
-    query,
-    filters: { category, minPrice, maxPrice },
-    pagination: {
-      page: parseInt(page),
-      limit: parseInt(limit),
-      total: results.length
-    },
-    results
-  });
-});
-
-/**
- * @swagger
- * /api/products/{id}:
- *   get:
- *     summary: Get product by ID
- *     description: Retrieve detailed information about a specific product
- *     tags: [Products]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: Product ID
- *         example: 1
- *     responses:
- *       200:
- *         description: Product details retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ProductDetail'
- *       404:
- *         description: Product not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-app.get('/api/products/:id', (req, res) => {
-  const { id } = req.params;
-  
-  logger.debug('Product details requested', { productId: id });
-
-  const dummyProducts = {
-    '1': {
-      id: 1,
-      name: 'Wireless Bluetooth Headphones',
-      category: 'Electronics',
-      price: 79.99,
-      description: 'High-quality wireless headphones with noise cancellation',
-      inStock: true,
-      ratings: 4.5,
-      reviews: 120
-    },
-    '2': {
-      id: 2,
-      name: 'Smart Watch',
-      category: 'Electronics',
-      price: 199.99,
-      description: 'Feature-rich smartwatch with health tracking',
-      inStock: true,
-      ratings: 4.7,
-      reviews: 85
-    }
-  };
-
-  const product = dummyProducts[id];
-
-  if (!product) {
-    logger.warn('Product not found', { productId: id, ip: req.ip });
-    return res.status(404).json({
-      error: 'Product not found'
+    // Error handler
+    this.app.use((err, req, res, next) => {
+      this.logger.error('Unhandled error', {
+        error: err.message,
+        stack: err.stack,
+        method: req.method,
+        url: req.originalUrl,
+        ip: req.ip
+      });
+      
+      res.status(500).json({
+        error: 'Internal server error'
+      });
     });
+
+    this.logger.info('Error handlers configured successfully');
   }
 
-  logger.debug('Product details retrieved', { productId: id, productName: product.name });
-  res.status(200).json(product);
-});
+  /**
+   * Initialize the application
+   */
+  initialize() {
+    this.logger.info('Initializing application');
 
-/**
- * @swagger
- * /api/categories:
- *   get:
- *     summary: Get all categories
- *     description: Retrieve a list of all available product categories
- *     tags: [Categories]
- *     responses:
- *       200:
- *         description: List of categories retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 categories:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Category'
- */
-app.get('/api/categories', (req, res) => {
-  logger.debug('Categories list requested');
-  
-  const categories = [
-    { id: 1, name: 'Electronics', count: 150 },
-    { id: 2, name: 'Sports', count: 80 },
-    { id: 3, name: 'Clothing', count: 200 },
-    { id: 4, name: 'Books', count: 120 },
-    { id: 5, name: 'Home & Garden', count: 95 }
-  ];
+    this._initDependencies();
+    this._configureMiddleware();
+    this._configureRoutes();
+    this._configureErrorHandlers();
 
-  res.status(200).json({
-    categories
-  });
-});
+    this.logger.info('Application initialized successfully');
 
-// 404 handler
-app.use((req, res) => {
-  logger.warn('404 - Endpoint not found', { 
-    method: req.method, 
-    url: req.originalUrl, 
-    ip: req.ip 
-  });
-  res.status(404).json({
-    error: 'Endpoint not found'
-  });
-});
+    return this.app;
+  }
 
-// Error logging middleware
-app.use(errorLogger);
+  /**
+   * Get the Express app instance
+   */
+  getApp() {
+    return this.app;
+  }
+}
 
-// Error handler
-app.use((err, req, res, next) => {
-  logger.error('Unhandled error', {
-    error: err.message,
-    stack: err.stack,
-    method: req.method,
-    url: req.originalUrl,
-    ip: req.ip
-  });
-  
-  res.status(500).json({
-    error: 'Internal server error'
-  });
-});
-
-export default app;
+export default Application;
