@@ -19,8 +19,8 @@ class ProductRouter {
      * @swagger
      * /api/search:
      *   get:
-     *     summary: Search for products
-     *     description: Search products with optional filters for category and price range
+     *     summary: Search for products using Elasticsearch
+     *     description: Search products with optional filters for category and price range. Uses Elasticsearch for fast, fuzzy, and relevant search results with automatic fallback to in-memory search.
      *     tags: [Search]
      *     parameters:
      *       - in: query
@@ -28,7 +28,7 @@ class ProductRouter {
      *         required: true
      *         schema:
      *           type: string
-     *         description: Search term to find products
+     *         description: Search term to find products (supports fuzzy matching)
      *         example: headphones
      *       - in: query
      *         name: category
@@ -76,8 +76,8 @@ class ProductRouter {
      *             schema:
      *               $ref: '#/components/schemas/Error'
      */
-    this.router.get('/search', (req, res) => 
-      this.productController.search(req, res)
+    this.router.get('/search', async (req, res) => 
+      await this.productController.search(req, res)
     );
 
     /**

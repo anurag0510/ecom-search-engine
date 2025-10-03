@@ -74,36 +74,59 @@ class ProductController {
    *             schema:
    *               $ref: '#/components/schemas/Error'
    */
+  /**
+   * Search products
+   */
   async search(req, res) {
+    const { query, category, minPrice, maxPrice, page = 1, limit = 10 } = req.query;
+
+    // Validate required query parameter
+    if (!query) {
+      this.logger.warn('Search attempted without query parameter');
+      return res.status(400).json({
+        error: 'Query parameter is required',
+        message: 'Please provide a search query using ?query=your-search-term',
+      });
+    }
+
     try {
-      const { query, category, minPrice, maxPrice, page = 1, limit = 10 } = req.query;
-
-      if (!query) {
-        this.logger.warn('Search attempted without query parameter', { ip: req.ip });
-        return res.status(400).json({
-          error: 'Search query is required'
-        });
-      }
-
-      const results = this.productService.searchProducts(query, {
+      // Get filtered results from service (now async with Elasticsearch)
+      const allResults = await this.productService.searchProducts(query, {
         category,
         minPrice,
-        maxPrice
+        maxPrice,
       });
 
-      res.status(200).json({
+      // Apply pagination
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + parseInt(limit);
+      const paginatedResults = allResults.slice(startIndex, endIndex);
+
+      // Prepare response
+      const response = {
         query,
         filters: { category, minPrice, maxPrice },
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
-          total: results.length
+          total: allResults.length,
+          pages: Math.ceil(allResults.length / limit),
         },
-        results
+        results: paginatedResults,
+      };
+
+      this.logger.info('Search completed successfully', {
+        query,
+        resultCount: allResults.length,
       });
+
+      res.json(response);
     } catch (error) {
-      this.logger.logError(error, { context: 'ProductController.search' });
-      res.status(500).json({ error: 'Internal server error' });
+      this.logger.error('Search operation failed', { error: error.message });
+      res.status(500).json({
+        error: 'Internal server error',
+        message: 'Failed to perform search',
+      });
     }
   }
 
