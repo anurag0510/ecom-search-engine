@@ -18,8 +18,7 @@
 
 import express from 'express';
 import swaggerUi from 'swagger-ui-express';
-import swaggerJsdoc from 'swagger-jsdoc';
-import { swaggerOptions } from './swagger.js';
+import swaggerSpec from './swagger.js';
 import { requestLogger, errorLogger, logger } from './middleware/logging.js';
 
 // Import services
@@ -79,7 +78,6 @@ class Application {
     this.app.use(express.urlencoded({ extended: true }));
 
     // Swagger UI
-    const swaggerSpec = swaggerJsdoc(swaggerOptions);
     this.app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
       customCss: '.swagger-ui .topbar { display: none }',
       customSiteTitle: 'E-commerce Search API Docs'
