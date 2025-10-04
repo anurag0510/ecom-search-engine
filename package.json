@@ -12,6 +12,7 @@
     "dev:warn": "LOG_LEVEL=warn node --watch src/index.js",
     "dev:error": "LOG_LEVEL=error node --watch src/index.js",
     "start:prod": "NODE_ENV=production LOG_LEVEL=warn node src/index.js",
+    "es:init": "node scripts/init-elasticsearch.js",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
     "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage"
@@ -39,7 +40,7 @@
     "supertest": "^7.1.4"
   },
   "dependencies": {
-    "@elastic/elasticsearch": "^9.1.1",
+    "@elastic/elasticsearch": "^8.11.0",
     "express": "^5.1.0",
     "joi": "^18.0.1",
     "swagger-jsdoc": "^6.2.8",
