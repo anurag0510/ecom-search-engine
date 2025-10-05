@@ -4,7 +4,9 @@ E-commerce search engine with REST API for product search and filtering.
 
 ## Features
 
-- 🔍 Product search with full-text matching
+- 🔍 **Elasticsearch Integration**: Fast, relevant product search with fuzzy matching
+- 📊 **Full-Text Search**: Search across product names and descriptions
+- 🔄 **Automatic Fallback**: Falls back to in-memory search if Elasticsearch is unavailable
 - 🏷️ Category-based filtering
 - 💰 Price range filtering
 - 📄 Pagination support
@@ -12,6 +14,7 @@ E-commerce search engine with REST API for product search and filtering.
 - 📚 Interactive Swagger/OpenAPI documentation
 - 📝 Comprehensive logging with Winston
 - ✅ Comprehensive test coverage
+- 🎯 OOP Architecture with dependency injection
 
 ## Getting Started
 
@@ -19,6 +22,9 @@ E-commerce search engine with REST API for product search and filtering.
 
 - Node.js >= 18.0.0
 - npm or yarn
+- **Elasticsearch** (optional but recommended for production search)
+  - Running on `http://localhost:9200` by default
+  - See [ELASTICSEARCH.md](ELASTICSEARCH.md) for setup instructions
 
 ### Installation
 
@@ -29,22 +35,51 @@ npm install
 # Copy environment variables template
 cp .env.example .env
 
-# Edit .env to configure logging and other settings
+# Edit .env to configure logging, Elasticsearch, and other settings
 ```
+
+### Elasticsearch Setup (Recommended)
+
+For production-quality search with fuzzy matching and relevance scoring:
+
+```bash
+# 1. Start Elasticsearch (using Docker)
+docker run -d --name elasticsearch \
+  -p 9200:9200 \
+  -p 9300:9300 \
+  -e "discovery.type=single-node" \
+  -e "xpack.security.enabled=false" \
+  docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+
+# 2. Initialize the product index and load sample data
+npm run es:init
+
+# 3. Start the application
+npm run dev
+```
+
+See [ELASTICSEARCH.md](ELASTICSEARCH.md) for detailed Elasticsearch integration documentation.
+
+**Note:** The application will work without Elasticsearch by falling back to in-memory search.
 
 ### Configuration
 
 Configure the application by editing the `.env` file:
 
 ```bash
+# Server
+PORT=3000
+
 # Logging level: error, warn, info, http, debug
 LOG_LEVEL=debug
 
-# Server port
-PORT=3000
+# Elasticsearch (optional)
+ELASTICSEARCH_NODE=http://localhost:9200
+ELASTICSEARCH_INDEX=products
 ```
 
 See [CONFIGURATION.md](CONFIGURATION.md) for detailed configuration options.
+See [ELASTICSEARCH.md](ELASTICSEARCH.md) for Elasticsearch-specific configuration.
 
 ### Running the Application
 
@@ -57,6 +92,9 @@ npm run dev:debug   # All logs
 npm run dev:info    # Info and above
 npm run dev:warn    # Warnings and errors only
 npm run dev:error   # Errors only
+
+# Initialize Elasticsearch (run once or after clearing index)
+npm run es:init
 
 # Production mode
 npm run start:prod
