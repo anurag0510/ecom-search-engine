@@ -50,6 +50,16 @@ const config = {
     prefix: process.env.API_PREFIX || '/api',
     version: process.env.API_VERSION || 'v1',
   },
+
+  // Elasticsearch configuration
+  elasticsearch: {
+    node: process.env.ELASTICSEARCH_NODE || 'http://localhost:9200',
+    username: process.env.ELASTICSEARCH_USERNAME,
+    password: process.env.ELASTICSEARCH_PASSWORD,
+    index: process.env.ELASTICSEARCH_INDEX || 'products',
+    maxRetries: parseInt(process.env.ELASTICSEARCH_MAX_RETRIES, 10) || 3,
+    requestTimeout: parseInt(process.env.ELASTICSEARCH_REQUEST_TIMEOUT, 10) || 30000,
+  },
 };
 
 /**
