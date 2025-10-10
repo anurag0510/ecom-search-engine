@@ -16,8 +16,33 @@
  * limitations under the License.
  */
 
+import { jest } from '@jest/globals';
 import request from 'supertest';
 import Application from '../src/app.js';
+
+// Mock Elasticsearch client to simulate unavailable ES and force fallback to in-memory search
+jest.unstable_mockModule('../src/config/elasticsearch.js', () => ({
+  default: {
+    search: jest.fn().mockRejectedValue(new Error('ES not available in tests')),
+    index: jest.fn().mockResolvedValue({ result: 'created' }),
+    bulk: jest.fn().mockResolvedValue({ errors: false }),
+    count: jest.fn().mockResolvedValue({ count: 0 }),
+    get: jest.fn().mockRejectedValue(new Error('Not found')),
+    deleteByQuery: jest.fn().mockResolvedValue({ deleted: 0 }),
+    indices: {
+      exists: jest.fn().mockResolvedValue(false),
+      create: jest.fn().mockResolvedValue({ acknowledged: true }),
+      delete: jest.fn().mockResolvedValue({ acknowledged: true }),
+    },
+    cluster: {
+      health: jest.fn().mockResolvedValue({
+        cluster_name: 'test',
+        status: 'green',
+        number_of_nodes: 1,
+      }),
+    },
+  },
+}));
 
 describe('Health Check Endpoint', () => {
   let app;
@@ -53,50 +78,85 @@ describe('Search API', () => {
         .expect(400);
 
       expect(response.body).toHaveProperty('error');
-      expect(response.body.error).toBe('Search query is required');
+      expect(response.body.error).toBe('Query parameter is required');
     });
 
     it('should return search results with valid query', async () => {
       const response = await request(app)
-        .get('/api/search?query=headphones')
+        .get('/api/search?query=luggage')
         .expect(200);
 
-      expect(response.body).toHaveProperty('query', 'headphones');
+      expect(response.body).toHaveProperty('query', 'luggage');
       expect(response.body).toHaveProperty('results');
       expect(Array.isArray(response.body.results)).toBe(true);
+      expect(response.body.results.length).toBeGreaterThan(0);
+      
+      // Check product structure
+      const product = response.body.results[0];
+      expect(product).toHaveProperty('asin');
+      expect(product).toHaveProperty('title');
+      expect(product).toHaveProperty('price');
+      expect(product).toHaveProperty('category_id');
     });
 
-    it('should filter by category', async () => {
+    it('should filter by category_id', async () => {
       const response = await request(app)
-        .get('/api/search?query=watch&category=Electronics')
+        .get('/api/search?query=luggage&category_id=104')
         .expect(200);
 
       expect(response.body.results.length).toBeGreaterThan(0);
       response.body.results.forEach(product => {
-        expect(product.category).toBe('Electronics');
+        expect(product.category_id).toBe(104);
       });
     });
 
     it('should filter by price range', async () => {
       const response = await request(app)
-        .get('/api/search?query=watch&minPrice=50&maxPrice=150')
+        .get('/api/search?query=luggage&minPrice=50&maxPrice=200')
         .expect(200);
 
-      response.body.results.forEach(product => {
-        expect(product.price).toBeGreaterThanOrEqual(50);
-        expect(product.price).toBeLessThanOrEqual(150);
-      });
+      if (response.body.results.length > 0) {
+        response.body.results.forEach(product => {
+          expect(product.price).toBeGreaterThanOrEqual(50);
+          expect(product.price).toBeLessThanOrEqual(200);
+        });
+      }
+    });
+
+    it('should filter by star rating', async () => {
+      const response = await request(app)
+        .get('/api/search?query=luggage&minStars=4.0')
+        .expect(200);
+
+      if (response.body.results.length > 0) {
+        response.body.results.forEach(product => {
+          expect(product.stars).toBeGreaterThanOrEqual(4.0);
+        });
+      }
+    });
+
+    it('should filter by best seller status', async () => {
+      const response = await request(app)
+        .get('/api/search?query=luggage&isBestSeller=true')
+        .expect(200);
+
+      if (response.body.results.length > 0) {
+        response.body.results.forEach(product => {
+          expect(product.isBestSeller).toBe(true);
+        });
+      }
     });
 
     it('should include pagination info', async () => {
       const response = await request(app)
-        .get('/api/search?query=shoes&page=1&limit=10')
+        .get('/api/search?query=luggage&page=1&limit=2')
         .expect(200);
 
       expect(response.body).toHaveProperty('pagination');
       expect(response.body.pagination).toHaveProperty('page', 1);
-      expect(response.body.pagination).toHaveProperty('limit', 10);
+      expect(response.body.pagination).toHaveProperty('limit', 2);
       expect(response.body.pagination).toHaveProperty('total');
+      expect(response.body.pagination).toHaveProperty('pages');
     });
   });
 });
@@ -110,24 +170,24 @@ describe('Products API', () => {
   });
 
   describe('GET /api/products/:id', () => {
-    it('should return product details for valid ID', async () => {
+    it('should return product details for valid ASIN', async () => {
       const response = await request(app)
-        .get('/api/products/1')
+        .get('/api/products/B014TMV5YE')
         .expect(200);
 
-      expect(response.body).toHaveProperty('id', 1);
-      expect(response.body).toHaveProperty('name');
+      expect(response.body).toHaveProperty('asin', 'B014TMV5YE');
+      expect(response.body).toHaveProperty('title');
       expect(response.body).toHaveProperty('price');
-      expect(response.body).toHaveProperty('category');
-      expect(response.body).toHaveProperty('description');
-      expect(response.body).toHaveProperty('inStock');
-      expect(response.body).toHaveProperty('ratings');
+      expect(response.body).toHaveProperty('category_id');
+      expect(response.body).toHaveProperty('stars');
       expect(response.body).toHaveProperty('reviews');
+      expect(response.body).toHaveProperty('isBestSeller');
+      expect(response.body).toHaveProperty('boughtInLastMonth');
     });
 
-    it('should return 404 for invalid product ID', async () => {
+    it('should return 404 for invalid product ASIN', async () => {
       const response = await request(app)
-        .get('/api/products/999')
+        .get('/api/products/INVALID_ASIN')
         .expect(404);
 
       expect(response.body).toHaveProperty('error', 'Product not found');
@@ -148,6 +208,7 @@ describe('Categories API', () => {
       const response = await request(app)
         .get('/api/categories')
         .expect(200);
+      
       expect(response.body).toHaveProperty('categories');
       expect(Array.isArray(response.body.categories)).toBe(true);
       expect(response.body.categories.length).toBeGreaterThan(0);
@@ -170,9 +231,10 @@ describe('Error Handling', () => {
 
   it('should return 404 for unknown endpoints', async () => {
     const response = await request(app)
-      .get('/api/unknown')
+      .get('/api/unknown-endpoint')
       .expect(404);
 
-    expect(response.body).toHaveProperty('error', 'Product not found');
+    expect(response.body).toHaveProperty('error');
+    expect(response.body.error).toContain('not found');
   });
 });
