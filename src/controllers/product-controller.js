@@ -78,7 +78,7 @@ class ProductController {
    * Search products
    */
   async search(req, res) {
-    const { query, category, minPrice, maxPrice, page = 1, limit = 10 } = req.query;
+    const { query, category_id, minPrice, maxPrice, minStars, isBestSeller, page = 1, limit = 10 } = req.query;
 
     // Validate required query parameter
     if (!query) {
@@ -92,9 +92,11 @@ class ProductController {
     try {
       // Get filtered results from service (now async with Elasticsearch)
       const allResults = await this.productService.searchProducts(query, {
-        category,
+        category_id,
         minPrice,
         maxPrice,
+        minStars,
+        isBestSeller,
       });
 
       // Apply pagination
@@ -105,7 +107,7 @@ class ProductController {
       // Prepare response
       const response = {
         query,
-        filters: { category, minPrice, maxPrice },
+        filters: { category_id, minPrice, maxPrice, minStars, isBestSeller },
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
